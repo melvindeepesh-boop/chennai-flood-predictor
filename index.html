@@ -1,0 +1,1512 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chennai Flood Predictor: Advanced Spatial Hydrological Modeling</title>
+    <!-- Google Fonts: Outfit & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#080c14',
+                            card: 'rgba(15, 23, 42, 0.65)',
+                            border: 'rgba(255, 255, 255, 0.05)',
+                            cyan: '#06b6d4',
+                            blue: '#3b82f6',
+                            amber: '#f59e0b',
+                            emerald: '#10b981',
+                            rose: '#ef4444'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Storm atmosphere background */
+        body {
+            background-color: #050810 !important;
+        }
+
+        /* Animated dark storm clouds layer */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -60%;
+            left: -20%;
+            width: 140%;
+            height: 90%;
+            background:
+                radial-gradient(ellipse 700px 300px at 20% 30%, rgba(15,20,50,0.95) 0%, transparent 70%),
+                radial-gradient(ellipse 500px 250px at 70% 20%, rgba(10,15,40,0.9) 0%, transparent 65%),
+                radial-gradient(ellipse 600px 280px at 45% 60%, rgba(20,25,60,0.85) 0%, transparent 70%),
+                radial-gradient(ellipse 400px 200px at 85% 50%, rgba(8,12,35,0.9) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            animation: clouds-drift 28s ease-in-out infinite alternate;
+            filter: blur(2px);
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: -40%;
+            left: -10%;
+            width: 130%;
+            height: 80%;
+            background:
+                radial-gradient(ellipse 550px 240px at 60% 40%, rgba(12,18,45,0.88) 0%, transparent 65%),
+                radial-gradient(ellipse 450px 200px at 25% 55%, rgba(18,22,55,0.82) 0%, transparent 60%),
+                radial-gradient(ellipse 350px 180px at 90% 30%, rgba(10,14,38,0.85) 0%, transparent 55%);
+            pointer-events: none;
+            z-index: 0;
+            animation: clouds-drift2 35s ease-in-out infinite alternate;
+            filter: blur(3px);
+        }
+
+        @keyframes clouds-drift {
+            0%   { transform: translateX(0px) translateY(0px) scaleX(1); }
+            33%  { transform: translateX(40px) translateY(15px) scaleX(1.03); }
+            66%  { transform: translateX(-20px) translateY(25px) scaleX(0.98); }
+            100% { transform: translateX(30px) translateY(10px) scaleX(1.02); }
+        }
+        @keyframes clouds-drift2 {
+            0%   { transform: translateX(0px) translateY(0px); }
+            40%  { transform: translateX(-35px) translateY(20px); }
+            70%  { transform: translateX(25px) translateY(30px); }
+            100% { transform: translateX(-15px) translateY(8px); }
+        }
+
+        /* Lightning bolt flash */
+        @keyframes lightning-bolt-anim {
+            0%   { opacity: 0; }
+            2%   { opacity: 1; }
+            4%   { opacity: 0.3; }
+            6%   { opacity: 1; }
+            10%  { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        .lightning-bolt {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0;
+        }
+
+        /* Wind-swept rain tilt */
+        #rain-canvas {
+            transform: rotate(8deg) scale(1.1);
+            transform-origin: top left;
+        }
+
+        /* Subtle fog/mist at bottom */
+        .storm-mist {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(to top, rgba(5,10,25,0.7) 0%, transparent 100%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Puddle shimmer effect at very bottom */
+        .storm-puddle {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right,
+                transparent 0%,
+                rgba(6,182,212,0.15) 20%,
+                rgba(6,182,212,0.3) 50%,
+                rgba(6,182,212,0.15) 80%,
+                transparent 100%
+            );
+            pointer-events: none;
+            z-index: 2;
+            animation: puddle-shimmer 3s ease-in-out infinite;
+        }
+        @keyframes puddle-shimmer {
+            0%, 100% { opacity: 0.4; transform: scaleX(1); }
+            50%       { opacity: 1;   transform: scaleX(1.02); }
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #080c14;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(6, 182, 212, 0.3);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(6, 182, 212, 0.6);
+        }
+
+        /* Cyberpunk scanline and grid effects */
+        .cyber-grid {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+        }
+        
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+        
+        .glow-rose {
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.25);
+        }
+        
+        .glow-emerald {
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+        }
+
+        /* Pulsing and blinking effects */
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.05); }
+        }
+        .pulse-glowing {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .blink-fast {
+            animation: blink 1s infinite steps(1);
+        }
+
+        .glass-panel {
+            background: rgba(13, 20, 35, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-cyber-bg text-slate-200 min-h-screen font-sans antialiased cyber-grid relative overflow-x-hidden">
+    
+    <!-- RAIN CANVAS LAYER -->
+    <canvas id="rain-canvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:0.55;"></canvas>
+
+    <!-- THUNDER FLASH OVERLAY -->
+    <div id="thunder-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;background:white;opacity:0;transition:opacity 0.05s;"></div>
+
+    <!-- LIGHTNING BOLT SVG container -->
+    <div id="lightning-container" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;"></div>
+
+    <!-- STORM MIST -->
+    <div class="storm-mist"></div>
+
+    <!-- PUDDLE SHIMMER -->
+    <div class="storm-puddle"></div>
+
+    <!-- Top Decorative Line -->
+    <div class="h-1 w-full bg-gradient-to-right bg-gradient-to-r from-cyber-cyan via-cyber-blue to-cyber-cyan" style="position:relative;z-index:2;"></div>
+    
+    <!-- App Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col min-h-screen justify-between" style="position:relative;z-index:2;">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-6 mb-8 gap-4">
+            <div class="flex items-center gap-4">
+                <!-- Glowing Radar Icon -->
+                <div class="relative w-12 h-12 rounded-lg bg-cyber-cyan/10 border border-cyber-cyan/30 flex items-center justify-center glow-cyan">
+                    <div class="w-4 h-4 rounded-full bg-cyber-cyan pulse-glowing"></div>
+                    <div class="absolute inset-0 border border-cyber-cyan/50 rounded-lg scale-75 animate-ping opacity-75"></div>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-slate-100 to-slate-400 font-sans">
+                        CHENNAI FLOOD PREDICTOR
+                    </h1>
+                    <p class="text-xs text-cyber-cyan font-mono tracking-widest uppercase">Spatial Hydrological Analytics</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="btn-audio-toggle" class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-mono bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-cyber-cyan hover:border-cyber-cyan/30 transition-all duration-300 shadow-md">
+                    <svg id="audio-icon-svg" class="w-3.5 h-3.5 mr-2 text-slate-500 transition-colors duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z"></path>
+                    </svg>
+                    <span id="audio-status-text">AMBIENT SOUND: OFF</span>
+                </button>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-mono bg-slate-900 border border-emerald-500/20 text-cyber-emerald">
+                    <span class="w-2 h-2 rounded-full bg-cyber-emerald mr-2 pulse-glowing"></span>
+                    ENGINE: ACTIVE [v1.4.0]
+                </span>
+                <span class="text-xs text-slate-500 font-mono">PORT: 5000</span>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="flex-grow space-y-8">
+            
+            <!-- MILESTONE 1: Hero Section -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+                <!-- Text Intro -->
+                <div class="lg:col-span-7 flex flex-col justify-center space-y-4">
+                    <div class="inline-block px-3 py-1 bg-cyber-cyan/10 border border-cyber-cyan/20 rounded-md text-xs font-mono text-cyber-cyan max-w-max">
+                        HYDROMETEOROLOGICAL RUNOFF ANALYSIS
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                        Advanced Spatial Hydrological Modeling
+                    </h2>
+                    <p class="text-slate-400 text-sm leading-relaxed max-w-2xl">
+                        This analytical engine performs predictive classifications of urban flood risks across Chennai's 15 administrative corporation zones. Powered by a RandomForestClassifier trained on 10,400 synthesized geological and monsoonal storm logs, the model factors in topographical elevation (area typography), rainfall rate (mm/hr), and duration to predict immediate water accumulation and discharge stress points.
+                    </p>
+                    <div class="flex flex-wrap gap-4 text-xs font-mono text-slate-500">
+                        <span class="flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyber-cyan"></span>
+                            RandomForest Classification
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyber-blue"></span>
+                            Geographic Information Systems (GIS)
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyber-amber"></span>
+                            Tidal Estuary Lockage Models
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Metrics Grid -->
+                <div class="lg:col-span-5 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
+                    <!-- Metric Card 1 -->
+                    <div class="glass-panel rounded-xl p-5 flex items-center justify-between shadow-lg relative overflow-hidden group hover:border-cyber-cyan/30 transition-all duration-300">
+                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-cyber-cyan/5 rounded-full filter blur-xl group-hover:bg-cyber-cyan/15 transition-all duration-500"></div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-mono uppercase tracking-wider">Model Accuracy</p>
+                            <h3 class="text-2xl font-bold text-white mt-1 font-mono">94.2%</h3>
+                        </div>
+                        <div class="text-cyber-cyan bg-cyber-cyan/10 p-3 rounded-lg border border-cyber-cyan/20">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                    </div>
+                    <!-- Metric Card 2 -->
+                    <div class="glass-panel rounded-xl p-5 flex items-center justify-between shadow-lg relative overflow-hidden group hover:border-cyber-blue/30 transition-all duration-300">
+                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-cyber-blue/5 rounded-full filter blur-xl group-hover:bg-cyber-blue/15 transition-all duration-500"></div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-mono uppercase tracking-wider">Records Parsed</p>
+                            <h3 class="text-2xl font-bold text-white mt-1 font-mono">25,000+</h3>
+                        </div>
+                        <div class="text-cyber-blue bg-cyber-blue/10 p-3 rounded-lg border border-cyber-blue/20">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                        </div>
+                    </div>
+                    <!-- Metric Card 3 -->
+                    <div class="glass-panel rounded-xl p-5 flex items-center justify-between shadow-lg relative overflow-hidden group hover:border-cyber-amber/30 transition-all duration-300">
+                        <div class="absolute -right-8 -bottom-8 w-24 h-24 bg-cyber-amber/5 rounded-full filter blur-xl group-hover:bg-cyber-amber/15 transition-all duration-500"></div>
+                        <div>
+                            <p class="text-xs text-slate-500 font-mono uppercase tracking-wider">False Alarm Rate</p>
+                            <h3 class="text-2xl font-bold text-white mt-1 font-mono">3.1%</h3>
+                        </div>
+                        <div class="text-cyber-amber bg-cyber-amber/10 p-3 rounded-lg border border-cyber-amber/20">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- MILESTONE 2: Simulator Panel -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                <!-- INPUT CARD (Left Panel) -->
+                <div class="lg:col-span-5 glass-panel rounded-2xl p-6 shadow-xl space-y-6">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                        <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Hydrological Parameters
+                    </h3>
+
+                    <!-- Neighborhood Selector -->
+                    <div class="relative space-y-2">
+                        <label class="block text-xs font-mono text-slate-400 uppercase tracking-wider">Simulated Area / Neighborhood</label>
+                        <div class="relative">
+                            <input type="text" id="area-search-input" placeholder="Search neighborhood... (e.g. Velachery)" 
+                                   class="w-full bg-slate-950/80 border border-slate-800 focus:border-cyber-cyan rounded-lg px-4 py-3 text-sm focus:outline-none transition duration-200 text-white font-medium pr-10">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            </div>
+                        </div>
+                        <!-- Dropdown list -->
+                        <div id="area-dropdown-list" class="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-slate-900 border border-slate-800 rounded-lg shadow-2xl z-50 hidden divide-y divide-slate-800/50">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Rainfall Rate Slider -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs font-mono">
+                            <span class="text-slate-400 uppercase tracking-wider">Hourly Rainfall Rate</span>
+                            <span class="text-cyber-cyan font-bold" id="val-rainfall">45 mm/hr</span>
+                        </div>
+                        <input type="range" id="slider-rainfall" min="10" max="150" value="45" 
+                               class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyber-cyan">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>10 mm/hr (Light)</span>
+                            <span>150 mm/hr (Catastrophic)</span>
+                        </div>
+                    </div>
+
+                    <!-- Duration Slider -->
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center text-xs font-mono">
+                            <span class="text-slate-400 uppercase tracking-wider">Rainfall Duration</span>
+                            <span class="text-cyber-cyan font-bold" id="val-duration">6 Hours</span>
+                        </div>
+                        <input type="range" id="slider-duration" min="1" max="24" value="6" 
+                               class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyber-cyan">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono">
+                            <span>1 Hour</span>
+                            <span>24 Hours</span>
+                        </div>
+                    </div>
+
+                    <!-- SYSTEM WARNING BOX -->
+                    <div id="warning-box" class="glass-panel border-slate-800 rounded-xl p-5 transition-all duration-300 relative overflow-hidden">
+                        <!-- Background glow effect -->
+                        <div id="warning-glow" class="absolute inset-0 opacity-5 transition-all duration-500"></div>
+                        
+                        <div class="relative z-10 space-y-4">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-mono text-slate-400 uppercase tracking-wider">Hazard Classification</span>
+                                <span id="warning-badge" class="px-3 py-1 rounded-md text-xs font-bold tracking-wider uppercase font-mono blink-fast">
+                                    INITIALIZING
+                                </span>
+                            </div>
+                            
+                            <div class="border-t border-slate-800/80 pt-3 space-y-2 text-xs font-mono">
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">Zone Elevation:</span>
+                                    <span id="out-elevation" class="text-slate-300">-- m</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">Cumulative Precipitation:</span>
+                                    <span id="out-cumulative" class="text-slate-300">-- mm</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">Estimated Infiltration Rate:</span>
+                                    <span id="out-drainage" class="text-slate-300">-- mm/hr</span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-800/50 pt-2 font-bold">
+                                    <span class="text-slate-400">Net Accumulation:</span>
+                                    <span id="out-accumulation" class="text-cyber-cyan">-- mm</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-slate-500">Est. Clearance Period:</span>
+                                    <span id="out-clearance" class="text-slate-300">-- Hours</span>
+                                </div>
+                            </div>
+
+                            <p id="out-reference" class="text-xs text-slate-400 leading-relaxed italic bg-slate-950/40 p-2.5 rounded-lg border border-slate-900 font-mono">
+                                Select parameter parameters to begin real-time modeling.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3D VISUALIZATION & CHART CARD (Right Panel) -->
+                <div class="lg:col-span-7 space-y-8">
+                    <!-- Three.js Canvas Container -->
+                    <div class="glass-panel rounded-2xl p-6 shadow-xl space-y-4">
+                        <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <svg class="w-5 h-5 text-cyber-cyan animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+                                24-Hour Interactive 3D Simulator
+                            </h3>
+                            <span class="text-[10px] font-mono text-slate-500 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">TERRAIN TOPOGRAPHY GRID</span>
+                        </div>
+                        
+                        <!-- 3D Canvas Box -->
+                        <div class="relative w-full h-[320px] rounded-xl overflow-hidden bg-slate-950/80 border border-slate-900">
+                            <!-- Canvas -->
+                            <div id="canvas-container" class="w-full h-full"></div>
+                            
+                            <!-- Isometric Overlay Controls -->
+                            <div class="absolute bottom-4 left-4 z-10 flex gap-2">
+                                <button id="btn-rotate" class="text-[10px] font-mono bg-slate-900/80 border border-slate-800 text-cyber-cyan px-2.5 py-1.5 rounded hover:bg-slate-800 transition">
+                                    PAUSE ROTATION
+                                </button>
+                                <button id="btn-reset-view" class="text-[10px] font-mono bg-slate-900/80 border border-slate-800 text-slate-400 px-2.5 py-1.5 rounded hover:bg-slate-800 transition">
+                                    RESET ANGLE
+                                </button>
+                            </div>
+                            <!-- Legend -->
+                            <div class="absolute top-4 right-4 z-10 bg-slate-900/90 border border-slate-800 p-2.5 rounded-lg text-[10px] font-mono space-y-1.5 shadow-xl max-w-[130px]">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 bg-cyber-cyan border border-cyber-cyan/30 rounded-sm"></div>
+                                    <span class="text-slate-400">Ridge (High)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 bg-slate-700 border border-slate-600 rounded-sm"></div>
+                                    <span class="text-slate-400">Plains (Mid)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 bg-slate-800 border border-slate-700 rounded-sm"></div>
+                                    <span class="text-slate-400">Lowlands</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 bg-[#0ea5e9]/60 border border-[#0ea5e9] rounded-sm"></div>
+                                    <span class="text-slate-400">Water Volume</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2D Progressive Graph Card -->
+                    <div class="glass-panel rounded-2xl p-6 shadow-xl space-y-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Cumulative Water Volume Accumulation (24-Hour Forecast)
+                        </h3>
+                        <div class="w-full h-[220px] relative">
+                            <canvas id="accumulation-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RECOMMENDATIONS EXPANDED PANEL -->
+            <section id="recommendations-container" class="glass-panel rounded-2xl p-6 shadow-xl hidden">
+                <h3 class="text-lg font-bold text-white mb-4 border-b border-slate-800 pb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    Safety Protocols & Hydrological Advisory
+                </h3>
+                <div id="recommendations-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm font-mono text-slate-300">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </section>
+        </main>
+
+        <!-- MILESTONE 3: Developer Profile (About Section) -->
+        <footer class="mt-12 border-t border-slate-800/80 pt-8 pb-4">
+            <div class="glass-panel rounded-2xl p-6 md:p-8 max-w-4xl mx-auto shadow-2xl relative border-cyber-cyan/10 hover:border-cyber-cyan/25 transition-all duration-300">
+                <!-- Decorative absolute glowing dot -->
+                <div class="absolute top-4 right-4 flex items-center gap-1.5 text-xs font-mono text-cyber-cyan bg-cyber-cyan/5 px-2 py-0.5 rounded border border-cyber-cyan/10">
+                    <span class="w-1.5 h-1.5 rounded-full bg-cyber-cyan pulse-glowing"></span>
+                    SCHOLAR
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <!-- Cyber avatar silhouette / logo -->
+                    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-slate-900 to-slate-950 border-2 border-cyber-cyan flex items-center justify-center glow-cyan shrink-0">
+                        <svg class="w-10 h-10 text-cyber-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"></path></svg>
+                    </div>
+                    
+                    <div class="space-y-3 text-center md:text-left">
+                        <div class="space-y-1">
+                            <h4 class="text-xl font-bold text-white tracking-wide">Deepesh M.</h4>
+                            <p class="text-xs text-cyber-cyan font-mono font-medium">Undergraduate Engineering Scholar</p>
+                        </div>
+                        <p class="text-slate-400 text-xs sm:text-sm leading-relaxed font-sans">
+                            Created by Deepesh M. from DMI College of Engineering. An undergraduate engineering scholar leveraging a strong academic foundation in Theoretical Computer Science and Discrete Mathematics to solve large-scale spatial computing and predictive hydrological problems.
+                        </p>
+                        <div class="flex flex-wrap justify-center md:justify-start gap-3 pt-2 text-[10px] font-mono text-slate-500">
+                            <span class="px-2 py-1 bg-slate-950 rounded border border-slate-900">DMI College of Engineering</span>
+                            <span class="px-2 py-1 bg-slate-950 rounded border border-slate-900">Theoretical Computer Science</span>
+                            <span class="px-2 py-1 bg-slate-950 rounded border border-slate-900">Discrete Mathematics</span>
+                            <span class="px-2 py-1 bg-slate-950 rounded border border-slate-900">Spatial Computing</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center text-[10px] font-mono text-slate-600 mt-8">
+                &copy; 2026 Chennai Flood Predictor App. Designed for Hydrometeorological Research.
+            </div>
+        </footer>
+    </div>
+
+    <!-- MAIN APP SCRIPT -->
+    <script>
+        // --- CHENNAI NEIGHBORHOOD DATABASE DICTIONARY ---
+        const NEIGHBORHOODS = [
+            "Tiruvottiyur", "Manali", "Madhavaram", "Tondiarpet", "Royapuram", 
+            "Thiru-Vi-Ka Nagar", "Ambattur", "Anna Nagar", "Teynampet", 
+            "Kodambakkam", "Nungambakkam", "Mylapore", "Egmore", 
+            "Valasaravakkam", "Porur", "Alandur", "Guindy", "Saidapet", 
+            "Adyar", "Velachery", "Perungudi", "Sholinganallur", "Tambaram / Chromepet"
+        ];
+
+        let selectedArea = "Velachery"; // Default Area
+        let currentChart = null;
+
+        // --- DOM ELEMENTS ---
+        const searchInput = document.getElementById("area-search-input");
+        const dropdownList = document.getElementById("area-dropdown-list");
+        const sliderRainfall = document.getElementById("slider-rainfall");
+        const sliderDuration = document.getElementById("slider-duration");
+        const valRainfall = document.getElementById("val-rainfall");
+        const valDuration = document.getElementById("val-duration");
+
+        // Metrics Outputs
+        const warningBox = document.getElementById("warning-box");
+        const warningGlow = document.getElementById("warning-glow");
+        const warningBadge = document.getElementById("warning-badge");
+        const outElevation = document.getElementById("out-elevation");
+        const outCumulative = document.getElementById("out-cumulative");
+        const outDrainage = document.getElementById("out-drainage");
+        const outAccumulation = document.getElementById("out-accumulation");
+        const outClearance = document.getElementById("out-clearance");
+        const outReference = document.getElementById("out-reference");
+        
+        const recommendationsContainer = document.getElementById("recommendations-container");
+        const recommendationsList = document.getElementById("recommendations-list");
+
+        // --- WEB AUDIO API STORM SOUND SYNTHESIZER ---
+        window.StormAudio = {
+            ctx: null,
+            rainSource: null,
+            rainGain: null,
+            enabled: false,
+
+            init() {
+                if (this.ctx) return;
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContextClass();
+                console.log("StormAudio: AudioContext initialized. Sample rate:", this.ctx.sampleRate);
+            },
+
+            toggle() {
+                this.init();
+                
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume().then(() => {
+                        console.log("StormAudio: AudioContext resumed successfully.");
+                    });
+                }
+
+                this.enabled = !this.enabled;
+                console.log("StormAudio: Ambience status changed to:", this.enabled ? "ON" : "OFF");
+                
+                const btn = document.getElementById('btn-audio-toggle');
+                const text = document.getElementById('audio-status-text');
+                const iconSvg = document.getElementById('audio-icon-svg');
+
+                if (this.enabled) {
+                    btn.classList.add('border-cyber-cyan/40', 'text-cyber-cyan');
+                    btn.classList.remove('text-slate-400');
+                    text.textContent = 'AMBIENT SOUND: ON';
+                    iconSvg.classList.add('text-cyber-cyan', 'animate-pulse');
+                    iconSvg.classList.remove('text-slate-500');
+                    iconSvg.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z"></path>`;
+                    
+                    this.startRain();
+                } else {
+                    btn.classList.remove('border-cyber-cyan/40', 'text-cyber-cyan');
+                    btn.classList.add('text-slate-400');
+                    text.textContent = 'AMBIENT SOUND: OFF';
+                    iconSvg.classList.remove('text-cyber-cyan', 'animate-pulse');
+                    iconSvg.classList.add('text-slate-500');
+                    iconSvg.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M17.25 9.75L19.5 12m0 0l2.25 2.25M19.5 12l2.25-2.25M19.5 12l-2.25 2.25m-10.5-6L4.5 9H1.5v6h3l4.5 3.75V5.25z"></path>`;
+                    
+                    this.stopRain();
+                }
+            },
+
+            startRain() {
+                if (!this.ctx) return;
+                console.log("StormAudio: Starting procedural rain synthesis...");
+                
+                const bufferSize = 2 * this.ctx.sampleRate;
+                const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+
+                this.rainSource = this.ctx.createBufferSource();
+                this.rainSource.buffer = noiseBuffer;
+                this.rainSource.loop = true;
+
+                // Better rain filters: lowpass + highpass filters to keep a rich rain roar
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 1400;
+
+                const highpass = this.ctx.createBiquadFilter();
+                highpass.type = 'highpass';
+                highpass.frequency.value = 200;
+
+                this.rainGain = this.ctx.createGain();
+                this.rainGain.gain.setValueAtTime(0.0, this.ctx.currentTime);
+                // Increased gain limit for better audibility
+                this.rainGain.gain.linearRampToValueAtTime(0.24, this.ctx.currentTime + 1.2);
+
+                this.rainSource.connect(highpass);
+                highpass.connect(filter);
+                filter.connect(this.rainGain);
+                this.rainGain.connect(this.ctx.destination);
+
+                this.rainSource.start(0);
+                console.log("StormAudio: Rain synthesis active.");
+            },
+
+            stopRain() {
+                if (this.rainGain && this.rainSource) {
+                    console.log("StormAudio: Fading out rain...");
+                    this.rainGain.gain.setValueAtTime(this.rainGain.gain.value, this.ctx.currentTime);
+                    this.rainGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.8);
+                    
+                    const source = this.rainSource;
+                    setTimeout(() => {
+                        try {
+                            source.stop();
+                            source.disconnect();
+                            console.log("StormAudio: Rain synthesis stopped.");
+                        } catch (e) {}
+                    }, 1000);
+                    
+                    this.rainSource = null;
+                }
+            },
+
+            playThunder() {
+                if (!this.enabled || !this.ctx) return;
+                
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                console.log("StormAudio: Triggering high-impact procedural thunder clap (crack + rumble)...");
+                const duration = 4 + Math.random() * 3; // 4 to 7 seconds
+                const sampleRate = this.ctx.sampleRate;
+                const bufferSize = sampleRate * duration;
+                const noiseBuffer = this.ctx.createBuffer(1, bufferSize, sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+
+                let lastOut = 0.0;
+                for (let i = 0; i < bufferSize; i++) {
+                    const white = Math.random() * 2 - 1;
+                    // Low-frequency brown noise approximation
+                    output[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = output[i];
+                    output[i] *= 3.5;
+                }
+
+                // 1. THE CRACK (High frequency sharp transient)
+                const crackSource = this.ctx.createBufferSource();
+                crackSource.buffer = noiseBuffer;
+                
+                const crackFilter = this.ctx.createBiquadFilter();
+                crackFilter.type = 'bandpass';
+                crackFilter.frequency.value = 1600; // mid-high crack audible on all speakers
+                crackFilter.Q.value = 2.0;
+
+                const crackGain = this.ctx.createGain();
+                crackGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                // Sharp attack and quick decay
+                crackGain.gain.linearRampToValueAtTime(0.9, this.ctx.currentTime + 0.02);
+                crackGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+
+                crackSource.connect(crackFilter);
+                crackFilter.connect(crackGain);
+                crackGain.connect(this.ctx.destination);
+
+                // 2. THE RUMBLE (Low-mid deep rumble)
+                const rumbleSource = this.ctx.createBufferSource();
+                rumbleSource.buffer = noiseBuffer;
+
+                const rumbleFilter = this.ctx.createBiquadFilter();
+                rumbleFilter.type = 'lowpass';
+                // Starts higher (600Hz) so it's punchy, then sweeps down to 40Hz
+                rumbleFilter.frequency.setValueAtTime(600, this.ctx.currentTime);
+                rumbleFilter.frequency.exponentialRampToValueAtTime(35, this.ctx.currentTime + duration - 0.5);
+
+                const rumbleGain = this.ctx.createGain();
+                rumbleGain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+                // Slight delay to align with the crack, then explodes
+                const attackTime = 0.04 + Math.random() * 0.08;
+                rumbleGain.gain.linearRampToValueAtTime(1.1, this.ctx.currentTime + attackTime);
+                rumbleGain.gain.exponentialRampToValueAtTime(0.25, this.ctx.currentTime + attackTime + 0.8);
+                rumbleGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+
+                // LFO to create a heavy shaking/rumbling volume effect
+                const lfo = this.ctx.createOscillator();
+                lfo.frequency.setValueAtTime(9 + Math.random() * 5, this.ctx.currentTime); // 9-14 Hz rumble speed
+                
+                const lfoGain = this.ctx.createGain();
+                lfoGain.gain.setValueAtTime(45, this.ctx.currentTime); // modulate filter frequency heavily
+
+                lfo.connect(lfoGain);
+                lfoGain.connect(rumbleFilter.frequency);
+
+                rumbleSource.connect(rumbleFilter);
+                rumbleFilter.connect(rumbleGain);
+                rumbleGain.connect(this.ctx.destination);
+
+                // Start both sources
+                crackSource.start(0);
+                rumbleSource.start(0);
+                lfo.start(0);
+
+                // Cleanup after duration
+                setTimeout(() => {
+                    try {
+                        crackSource.stop();
+                        rumbleSource.stop();
+                        lfo.stop();
+                        crackSource.disconnect();
+                        crackFilter.disconnect();
+                        crackGain.disconnect();
+                        rumbleSource.disconnect();
+                        rumbleFilter.disconnect();
+                        rumbleGain.disconnect();
+                        lfo.disconnect();
+                        lfoGain.disconnect();
+                        console.log("StormAudio: Heavy split-thunder audio nodes cleaned up.");
+                    } catch (err) {}
+                }, (duration + 0.5) * 1000);
+            }
+        };
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            searchInput.value = selectedArea;
+            setupDropdown();
+            initChart();
+            initThreeJS();
+            triggerPrediction();
+
+            // Set up audio toggle event listener
+            document.getElementById('btn-audio-toggle').addEventListener('click', () => {
+                window.StormAudio.toggle();
+            });
+
+            // Dynamically show the current access port
+            const portLabel = document.querySelector("header .text-slate-500.font-mono");
+            if (portLabel) {
+                portLabel.textContent = `PORT: ${window.location.port || '80'}`;
+            }
+        });
+
+        // --- SEARCHABLE DROPDOWN MANAGEMENT ---
+        function setupDropdown() {
+            // Populate list
+            renderDropdownItems(NEIGHBORHOODS);
+
+            // Toggle display on focus
+            searchInput.addEventListener('focus', () => {
+                dropdownList.classList.remove('hidden');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !dropdownList.contains(e.target)) {
+                    dropdownList.classList.add('hidden');
+                }
+            });
+
+            // Filter on input
+            searchInput.addEventListener('input', () => {
+                const term = searchInput.value.toLowerCase().trim();
+                const filtered = NEIGHBORHOODS.filter(n => n.toLowerCase().includes(term));
+                renderDropdownItems(filtered);
+                dropdownList.classList.remove('hidden');
+            });
+        }
+
+        function renderDropdownItems(list) {
+            dropdownList.innerHTML = '';
+            if (list.length === 0) {
+                dropdownList.innerHTML = `<div class="px-4 py-3 text-xs text-slate-500 font-mono italic">No area matches query</div>`;
+                return;
+            }
+
+            list.forEach(area => {
+                const item = document.createElement('div');
+                item.className = 'px-4 py-2.5 text-sm hover:bg-slate-800/80 cursor-pointer transition text-slate-200 hover:text-white font-mono flex justify-between items-center';
+                item.innerHTML = `
+                    <span>${area}</span>
+                    <span class="text-[10px] text-slate-500 font-sans">SELECT</span>
+                `;
+                item.addEventListener('click', () => {
+                    selectedArea = area;
+                    searchInput.value = area;
+                    dropdownList.classList.add('hidden');
+                    triggerPrediction();
+                });
+                dropdownList.appendChild(item);
+            });
+        }
+
+        // --- SLIDERS INTERACTION ---
+        sliderRainfall.addEventListener('input', () => {
+            valRainfall.textContent = `${sliderRainfall.value} mm/hr`;
+            triggerPrediction();
+        });
+
+        sliderDuration.addEventListener('input', () => {
+            valDuration.textContent = `${sliderDuration.value} ${sliderDuration.value == 1 ? 'Hour' : 'Hours'}`;
+            triggerPrediction();
+        });
+
+        // --- GEOLOGICAL DATABASE AND PREDICTIVE SIMULATOR (CLIENT-SIDE) ---
+        const ZONES_DB = {
+            "Tiruvottiyur": { zone_id: 1, area_type: 0, elevation_m: 2.1, description: "Coastal Lowland - highly vulnerable to sea-level surges and river backwater.", drainage_rate_mm_hr: 2.0 },
+            "Manali": { zone_id: 2, area_type: 1, elevation_m: 4.5, description: "Industrial Plain - low elevation near Kosasthalaiyar river basin drainage.", drainage_rate_mm_hr: 3.5 },
+            "Madhavaram": { zone_id: 3, area_type: 4, elevation_m: 9.2, description: "Elevated Uplands - high natural elevation with good soil drainage.", drainage_rate_mm_hr: 15.0 },
+            "Tondiarpet": { zone_id: 4, area_type: 1, elevation_m: 3.2, description: "Coastal Flatland - dense urban area with restricted stormwater slope.", drainage_rate_mm_hr: 3.0 },
+            "Royapuram": { zone_id: 4, area_type: 1, elevation_m: 3.0, description: "Coastal Urban Fringe - low-lying flat terrain adjacent to harbor areas.", drainage_rate_mm_hr: 3.0 },
+            "Thiru-Vi-Ka Nagar": { zone_id: 5, area_type: 2, elevation_m: 5.8, description: "Central Flat Plain - highly paved, prone to waterlogging during monsoon peaks.", drainage_rate_mm_hr: 5.5 },
+            "Ambattur": { zone_id: 6, area_type: 2, elevation_m: 7.5, description: "Lake Basin Plain - surrounded by multiple lakes; vulnerable to industrial runoff overflow.", drainage_rate_mm_hr: 6.0 },
+            "Anna Nagar": { zone_id: 7, area_type: 3, elevation_m: 8.0, description: "Medium Elevation Plain - robust storm drain network but local depression risks.", drainage_rate_mm_hr: 10.0 },
+            "Teynampet": { zone_id: 8, area_type: 3, elevation_m: 7.2, description: "Medium Elevation Central - urban commercial core; drains into central canal networks.", drainage_rate_mm_hr: 9.0 },
+            "Kodambakkam": { zone_id: 9, area_type: 2, elevation_m: 6.1, description: "Central Dense Flatland - concrete-heavy ground, increasing flash run-off.", drainage_rate_mm_hr: 5.0 },
+            "Nungambakkam": { zone_id: 9, area_type: 2, elevation_m: 6.0, description: "Central Basin - historically a lakebed; high localized water retention.", drainage_rate_mm_hr: 5.0 },
+            "Mylapore": { zone_id: 9, area_type: 1, elevation_m: 4.2, description: "Coastal Lowland Plain - historic residential belt with aged drainage outlets.", drainage_rate_mm_hr: 4.0 },
+            "Egmore": { zone_id: 9, area_type: 1, elevation_m: 3.8, description: "Cooum River Basin - low-lying area; vulnerable to river backflows during dams discharge.", drainage_rate_mm_hr: 3.5 },
+            "Valasaravakkam": { zone_id: 10, area_type: 1, elevation_m: 5.0, description: "Low-lying Plain - flat residential development, highly dependent on micro-canals.", drainage_rate_mm_hr: 4.0 },
+            "Porur": { zone_id: 10, area_type: 1, elevation_m: 4.8, description: "Lake Fringe Lowland - located directly in the overflow pathways of Porur lake.", drainage_rate_mm_hr: 3.8 },
+            "Alandur": { zone_id: 11, area_type: 3, elevation_m: 12.5, description: "Elevated Plain - decent natural slopes draining toward the Adyar river.", drainage_rate_mm_hr: 11.0 },
+            "Guindy": { zone_id: 11, area_type: 4, elevation_m: 15.0, description: "Hilly Ridge - high elevation with forest cover, excellent natural percolation.", drainage_rate_mm_hr: 18.0 },
+            "Saidapet": { zone_id: 11, area_type: 1, elevation_m: 4.0, description: "Adyar River Plain - low-lying river bank; highly flooded when upstream reservoirs release water.", drainage_rate_mm_hr: 3.5 },
+            "Adyar": { zone_id: 12, area_type: 3, elevation_m: 6.5, description: "Estuary Plain - flatland near Adyar river mouth; vulnerable to high-tide lockage.", drainage_rate_mm_hr: 8.0 },
+            "Velachery": { zone_id: 12, area_type: 0, elevation_m: 2.0, description: "Marshland Fringe - former lake/marsh basin; extremely vulnerable to massive water logging.", drainage_rate_mm_hr: 1.5 },
+            "Perungudi": { zone_id: 13, area_type: 0, elevation_m: 1.8, description: "Marshland Flatland - high water table bordering Pallikaranai marshland.", drainage_rate_mm_hr: 1.8 },
+            "Sholinganallur": { zone_id: 14, area_type: 0, elevation_m: 1.5, description: "Coastal Marshland - low-elevation flat terrain bordering Buckingham canal and marsh corridor.", drainage_rate_mm_hr: 1.5 },
+            "Tambaram / Chromepet": { zone_id: 14, area_type: 4, elevation_m: 22.0, description: "Southern Elevated Ridges - hilly topography; flooding is restricted to narrow natural drains.", drainage_rate_mm_hr: 16.0 }
+        };
+
+        function simulatePrediction(areaName, rainfall, duration) {
+            const zoneInfo = ZONES_DB[areaName];
+            if (!zoneInfo) return null;
+
+            const areaType = zoneInfo.area_type;
+            const totalRain = rainfall * duration;
+
+            // Physical prediction formula matching generate_model.py logic
+            let prob = 0.02;
+            const thresholds = { 0: 60, 1: 100, 2: 150, 3: 220, 4: 300 };
+            const thresh = thresholds[areaType];
+
+            if (totalRain > 320) {
+                prob = areaType < 4 ? 0.98 : 0.80;
+            } else if (totalRain > 220) {
+                prob = areaType === 4 ? 0.45 : (areaType === 3 ? 0.75 : 0.95);
+            } else {
+                if (totalRain < thresh * 0.5) {
+                    prob = 0.02;
+                } else if (totalRain < thresh) {
+                    prob = 0.02 + 0.38 * ((totalRain - thresh * 0.5) / (thresh * 0.5));
+                } else {
+                    prob = 0.40 + 0.58 * Math.min(1.0, (totalRain - thresh) / thresh);
+                }
+            }
+
+            // High-intensity flash flood rule
+            if (rainfall > 90 && duration >= 2) {
+                prob = Math.max(prob, areaType >= 3 ? 0.70 : 0.95);
+            }
+
+            // Hydrological Calculations
+            const drainageRate = zoneInfo.drainage_rate_mm_hr;
+            const netAccumulation = Math.max(0.0, totalRain - (drainageRate * duration));
+            const drainageTime = netAccumulation > 0 ? Math.round((netAccumulation / drainageRate) * 10) / 10 : 0.0;
+
+            let riskLevel = "SAFE";
+            let predictionClass = 0;
+            if (prob >= 0.75) {
+                riskLevel = "HIGH RISK";
+                predictionClass = 1;
+            } else if (prob >= 0.35) {
+                riskLevel = "MODERATE RISK";
+                predictionClass = 1;
+            }
+
+            // Historical context mapping
+            let historicalReference = "Standard monsoonal precipitation.";
+            if (totalRain >= 350) {
+                historicalReference = "Approaching the catastrophic volume of the December 2015 historical deluge. Immediate emergency standby required.";
+            } else if (totalRain >= 250) {
+                historicalReference = "Simulates conditions similar to the 2023 Cyclone Michaung waterlogging events. Extensive suburban inundation likely.";
+            } else if (totalRain >= 120 && (areaType === 0 || areaType === 1)) {
+                historicalReference = "Exceeds saturation threshold for low-lying coastal zones. Typical local inundation points active.";
+            }
+
+            // Recommendations
+            let recommendations = [];
+            if (riskLevel === "HIGH RISK") {
+                recommendations = [
+                    "Evacuate ground floor levels in designated zone immediately.",
+                    "Halt non-essential transit across sub-surface channels.",
+                    "Ensure emergency backup power & critical medication stocks are prepared.",
+                    "Keep local emergency disaster rescue hotlines (1913) active."
+                ];
+            } else if (riskLevel === "MODERATE RISK") {
+                recommendations = [
+                    "Monitor official GCC updates regarding reservoir gate discharge.",
+                    "Clear nearby micro-drain catchments from plastic blockage.",
+                    "Park vehicles in elevated zones or multi-story structures.",
+                    "Prepare basic emergency kit (potable water, torches, powerbanks)."
+                ];
+            } else {
+                recommendations = [
+                    "Standard monsoonal flow. Clear leaves from local storm sewer inlets.",
+                    "Maintain default situational awareness of seasonal rainfall reports.",
+                    "Check roof outlets for seamless terrace runoff drainage."
+                ];
+            }
+
+            return {
+                area_name: areaName,
+                zone_id: zoneInfo.zone_id,
+                area_type: areaType,
+                elevation_m: zoneInfo.elevation_m,
+                geological_summary: zoneInfo.description,
+                rainfall_rate_mm_hr: rainfall,
+                duration_hours: duration,
+                cumulative_rainfall_mm: Math.round(totalRain * 10) / 10,
+                drainage_rate_mm_hr: drainageRate,
+                net_accumulation_mm: Math.round(netAccumulation * 10) / 10,
+                drainage_time_hours: drainageTime,
+                prediction: predictionClass,
+                probability: Math.round(prob * 10000) / 10000,
+                risk_level: riskLevel,
+                historical_reference: historicalReference,
+                recommendations: recommendations
+            };
+        }
+
+        // --- INFERENCE AND SIMULATION TRIGGER (CLIENT-SIDE) ---
+        function triggerPrediction() {
+            const rainfall = parseFloat(sliderRainfall.value);
+            const duration = parseFloat(sliderDuration.value);
+            
+            const data = simulatePrediction(selectedArea, rainfall, duration);
+            if (data) {
+                updateUI(data);
+            } else {
+                console.error("Predict logic error: Area not found in ZONES_DB");
+            }
+        }
+
+        // --- UPDATE FRONTEND UI METRICS ---
+        function updateUI(data) {
+            // Basic values
+            outElevation.textContent = `${data.elevation_m} m`;
+            outCumulative.textContent = `${data.cumulative_rainfall_mm} mm`;
+            outDrainage.textContent = `${data.drainage_rate_mm_hr} mm/hr`;
+            outAccumulation.textContent = `${data.net_accumulation_mm} mm`;
+            outClearance.textContent = `${data.drainage_time_hours} Hours`;
+            outReference.textContent = data.historical_reference;
+
+            // Warning panel formatting
+            warningBox.className = "glass-panel rounded-xl p-5 transition-all duration-300 relative overflow-hidden";
+            warningGlow.className = "absolute inset-0 opacity-15 transition-all duration-500";
+            
+            if (data.risk_level === "HIGH RISK") {
+                warningBox.classList.add("border-red-500/40", "glow-rose");
+                warningGlow.classList.add("bg-red-600");
+                
+                warningBadge.className = "px-3 py-1 rounded-md text-xs font-bold tracking-wider uppercase font-mono bg-red-950/60 border border-red-500/30 text-red-500 blink-fast";
+                warningBadge.textContent = "HIGH RISK";
+            } else if (data.risk_level === "MODERATE RISK") {
+                warningBox.classList.add("border-amber-500/40", "glow-cyan"); // styled with cyan/amber glow mix
+                warningGlow.classList.add("bg-amber-600");
+                
+                warningBadge.className = "px-3 py-1 rounded-md text-xs font-bold tracking-wider uppercase font-mono bg-amber-950/60 border border-amber-500/30 text-amber-500";
+                warningBadge.textContent = "MODERATE RISK";
+            } else {
+                warningBox.classList.add("border-emerald-500/40", "glow-emerald");
+                warningGlow.classList.add("bg-emerald-600");
+                
+                warningBadge.className = "px-3 py-1 rounded-md text-xs font-bold tracking-wider uppercase font-mono bg-emerald-950/60 border border-emerald-500/30 text-emerald-400";
+                warningBadge.textContent = "SAFE";
+            }
+
+            // Recommendations List
+            recommendationsContainer.classList.remove('hidden');
+            recommendationsList.innerHTML = '';
+            data.recommendations.forEach(rec => {
+                const item = document.createElement('div');
+                item.className = 'flex items-start gap-2.5 bg-slate-950/40 border border-slate-900 p-3 rounded-lg';
+                item.innerHTML = `
+                    <span class="text-cyber-cyan mt-0.5">&bull;</span>
+                    <span>${rec}</span>
+                `;
+                recommendationsList.appendChild(item);
+            });
+
+            // Update Chart
+            updateChartData(data);
+
+            // Update ThreeJS Water Level
+            // Let's pass the net accumulation and area_type to ThreeJS
+            update3DWater(data.net_accumulation_mm, data.area_type);
+        }
+
+        // --- CHART.JS MANAGEMENT ---
+        function initChart() {
+            const ctx = document.getElementById('accumulation-chart').getContext('2d');
+            
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Cumulative Water Level (mm)',
+                        data: [],
+                        backgroundColor: 'rgba(6, 182, 212, 0.4)',
+                        borderColor: '#06b6d4',
+                        borderWidth: 1.5,
+                        borderRadius: 4,
+                        hoverBackgroundColor: 'rgba(59, 130, 246, 0.6)',
+                        hoverBorderColor: '#3b82f6'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { 
+                                color: '#64748b', 
+                                font: { family: 'JetBrains Mono', size: 9 }
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { 
+                                color: '#64748b', 
+                                font: { family: 'JetBrains Mono', size: 9 }
+                            },
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartData(data) {
+            if (!currentChart) return;
+
+            const duration = Math.ceil(data.duration_hours);
+            const hourlyRain = data.rainfall_rate_mm_hr;
+            const hourlyDrain = data.drainage_rate_mm_hr;
+            
+            const labels = [];
+            const chartData = [];
+            
+            let accumulated = 0;
+            for (let h = 1; h <= 24; h++) {
+                labels.push(`H${h}`);
+                if (h <= duration) {
+                    accumulated += Math.max(0, hourlyRain - hourlyDrain);
+                } else {
+                    // post-rain drainage
+                    accumulated = Math.max(0, accumulated - hourlyDrain);
+                }
+                chartData.push(parseFloat(accumulated.toFixed(1)));
+            }
+
+            currentChart.data.labels = labels;
+            currentChart.data.datasets[0].data = chartData;
+            
+            // Adjust bar colors dynamically if flooding occurs
+            if (data.risk_level === "HIGH RISK") {
+                currentChart.data.datasets[0].backgroundColor = 'rgba(239, 68, 68, 0.4)';
+                currentChart.data.datasets[0].borderColor = '#ef4444';
+            } else if (data.risk_level === "MODERATE RISK") {
+                currentChart.data.datasets[0].backgroundColor = 'rgba(245, 158, 11, 0.4)';
+                currentChart.data.datasets[0].borderColor = '#f59e0b';
+            } else {
+                currentChart.data.datasets[0].backgroundColor = 'rgba(16, 185, 129, 0.4)';
+                currentChart.data.datasets[0].borderColor = '#10b981';
+            }
+            
+            currentChart.update();
+        }
+
+        // --- THREE.JS 3D TERRAIN VISUALIZATION ---
+        let scene, camera, renderer, waterMesh, terrainGroup;
+        let targetWaterHeight = -1.0;
+        let currentWaterHeight = -1.0;
+        let isRotating = true;
+
+        function initThreeJS() {
+            const container = document.getElementById('canvas-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = null; // transparent to inherit canvas container bg
+
+            // Camera (Perspective set up as diagonal isometric angle)
+            camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            camera.position.set(13, 11, 13);
+            camera.lookAt(0, 0, 0);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(15, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const secondaryLight = new THREE.DirectionalLight(0x06b6d4, 0.4);
+            secondaryLight.position.set(-15, 10, -10);
+            scene.add(secondaryLight);
+
+            // Create Terrain Group
+            terrainGroup = new THREE.Group();
+            scene.add(terrainGroup);
+
+            // Construct Terrain (Grid of Voxel Columns representing topographic elevation model)
+            // A 10x10 grid. Center columns represent low-lying river beds/marshes.
+            const gridCount = 10;
+            const size = 0.8;
+            const spacing = 0.85;
+            const startX = -((gridCount - 1) * spacing) / 2;
+            const startZ = -((gridCount - 1) * spacing) / 2;
+
+            for (let x = 0; x < gridCount; x++) {
+                for (let z = 0; z < gridCount; z++) {
+                    // Compute coordinate distance from center representing depression channel
+                    const dx = x - (gridCount - 1) / 2;
+                    const dz = z - (gridCount - 1) / 2;
+                    const distFromCenter = Math.sqrt(dx * dx + dz * dz);
+                    
+                    // Height profile (bowl shape, higher elevation at edges)
+                    let colHeight = 0.5 + (distFromCenter * distFromCenter) * 0.12;
+                    
+                    // Add some noise/roughness to look geographical
+                    colHeight += Math.sin(x * 0.6) * Math.cos(z * 0.6) * 0.25;
+
+                    const colGeo = new THREE.BoxGeometry(size, colHeight, size);
+                    
+                    // Base color mapping: low points are darker, peaks are cyan/slate
+                    let colColor;
+                    if (colHeight < 1.2) {
+                        colColor = 0x1e293b; // Low plains (Dark Slate)
+                    } else if (colHeight < 2.0) {
+                        colColor = 0x334155; // Medium plains (Slate-blue)
+                    } else {
+                        colColor = 0x475569; // Elevated ridges (Light slate)
+                    }
+
+                    // Cyber aesthetic overlay: wireframe edges look very high-tech
+                    const colMat = new THREE.MeshLambertMaterial({
+                        color: colColor,
+                        transparent: true,
+                        opacity: 0.9,
+                    });
+
+                    const mesh = new THREE.Mesh(colGeo, colMat);
+                    mesh.position.set(
+                        startX + x * spacing,
+                        colHeight / 2 - 1.5, // Center offset
+                        startZ + z * spacing
+                    );
+                    mesh.castShadow = true;
+                    mesh.receiveShadow = true;
+                    
+                    terrainGroup.add(mesh);
+                }
+            }
+
+            // Translucent Water Mesh
+            // Single bounding volume covering the terrain grid area
+            const waterWidth = gridCount * spacing;
+            const waterGeo = new THREE.BoxGeometry(waterWidth, 4.0, waterWidth);
+            const waterMat = new THREE.MeshPhysicalMaterial({
+                color: 0x06b6d4,
+                transparent: true,
+                opacity: 0.6,
+                transmission: 0.7, // glassy transparency
+                roughness: 0.1,
+                metalness: 0.1,
+                depthWrite: false
+            });
+            waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            
+            // Set initial position representing dry/safe
+            waterMesh.position.set(0, -3.5, 0); 
+            scene.add(waterMesh);
+
+            // Base Wireframe Grid Platform
+            const gridHelper = new THREE.GridHelper(12, 12, 0x06b6d4, 0x1e293b);
+            gridHelper.position.y = -1.6;
+            scene.add(gridHelper);
+
+            // Event Listeners for UI
+            document.getElementById('btn-rotate').addEventListener('click', () => {
+                isRotating = !isRotating;
+                document.getElementById('btn-rotate').textContent = isRotating ? "PAUSE ROTATION" : "RESUME ROTATION";
+                document.getElementById('btn-rotate').classList.toggle('text-cyber-cyan');
+                document.getElementById('btn-rotate').classList.toggle('text-slate-500');
+            });
+
+            document.getElementById('btn-reset-view').addEventListener('click', () => {
+                terrainGroup.rotation.set(0, 0, 0);
+            });
+
+            // Start Animation Loop
+            animate();
+            
+            // Handle window resizing
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+
+        // Lerps the water height and animates the rotation
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Rotate terrain slowly
+            if (isRotating) {
+                terrainGroup.rotation.y += 0.003;
+                waterMesh.rotation.y = terrainGroup.rotation.y;
+            }
+
+            // Smooth interpolation (lerp) of water levels
+            currentWaterHeight += (targetWaterHeight - currentWaterHeight) * 0.05;
+            
+            // Apply wave height oscillations
+            const waveOscillation = Math.sin(Date.now() * 0.002) * 0.04;
+            waterMesh.position.y = currentWaterHeight + waveOscillation;
+
+            renderer.render(scene, camera);
+        }
+
+        // --- UPDATE 3D WATER HEIGHT SYSTEM ---
+        function update3DWater(netAccumulation, areaType) {
+            if (!waterMesh) return;
+            
+            // area_type adjusts base elevation offsets
+            // area_type 0: coastal/marsh (water table baseline is naturally high)
+            // area_type 4: upland ridges (water baseline is very low)
+            const areaBaselineOffsets = {
+                0: -1.2,  // Marshall/Coastal (starts flooded/high baseline)
+                1: -1.8,
+                2: -2.3,
+                3: -2.8,
+                4: -3.4   // Uplands (starts extremely deep/safe)
+            };
+
+            const baseline = areaBaselineOffsets[areaType] !== undefined ? areaBaselineOffsets[areaType] : -2.0;
+
+            // Cumulative water scaling (accumulation of mm mapping to scene units)
+            // Max accumulation of 400mm maps to 2.8 units of water growth
+            const scaleFactor = Math.min(2.8, (netAccumulation / 320) * 2.8);
+            
+            // Set the target height for the animation loop to interpolate
+            targetWaterHeight = baseline + scaleFactor;
+        }
+    </script>
+
+    <!-- STORM ENGINE: Rain + Thunder + Lightning -->
+    <script>
+    (function() {
+        const canvas  = document.getElementById('rain-canvas');
+        const ctx     = canvas.getContext('2d');
+        const overlay = document.getElementById('thunder-overlay');
+        const boltContainer = document.getElementById('lightning-container');
+
+        let W, H, drops = [];
+        const DROP_COUNT = 320;
+
+        function resize() {
+            W = canvas.width  = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        resize();
+        window.addEventListener('resize', () => { resize(); spawnDrops(); });
+
+        function Drop() { this.reset(true); }
+        Drop.prototype.reset = function(initial) {
+            this.x     = Math.random() * W;
+            this.y     = initial ? Math.random() * H : Math.random() * H * -1;
+            this.len   = 10 + Math.random() * 22;
+            this.speed = 18 + Math.random() * 28;
+            this.width = 0.4 + Math.random() * 0.9;
+            this.alpha = 0.25 + Math.random() * 0.55;
+            const cyan = Math.random() < 0.18;
+            this.color = cyan
+                ? `rgba(6,182,212,${this.alpha})`
+                : `rgba(180,210,255,${this.alpha})`;
+        };
+        Drop.prototype.update = function() {
+            this.y += this.speed;
+            this.x -= this.speed * 0.14;
+            if (this.y - this.len > H || this.x < -20) this.reset(false);
+        };
+        Drop.prototype.draw = function() {
+            ctx.save();
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth   = this.width;
+            ctx.beginPath();
+            ctx.moveTo(this.x, this.y);
+            ctx.lineTo(this.x + this.len * 0.14, this.y - this.len);
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        function spawnDrops() {
+            drops = Array.from({ length: DROP_COUNT }, () => new Drop());
+        }
+        spawnDrops();
+
+        let splashes = [];
+        function spawnSplash(x) {
+            for (let i = 0; i < 3; i++) {
+                splashes.push({
+                    x, y: H - 2,
+                    vx: (Math.random() - 0.5) * 3,
+                    vy: -(Math.random() * 3 + 1),
+                    life: 1.0,
+                    r: 1 + Math.random() * 1.5
+                });
+            }
+        }
+
+        function rainLoop() {
+            ctx.clearRect(0, 0, W, H);
+            drops.forEach(d => {
+                d.update(); d.draw();
+                if (d.y >= H - 5 && Math.random() < 0.2) spawnSplash(d.x);
+            });
+            splashes = splashes.filter(s => s.life > 0);
+            splashes.forEach(s => {
+                ctx.save();
+                ctx.globalAlpha = s.life * 0.6;
+                ctx.strokeStyle = `rgba(150,200,255,${s.life})`;
+                ctx.lineWidth   = 0.8;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+                s.x += s.vx; s.y += s.vy; s.vy += 0.25; s.life -= 0.07;
+            });
+            requestAnimationFrame(rainLoop);
+        }
+        rainLoop();
+
+        // ── LIGHTNING ──────────────────────────────────────────────────
+        function makeBoltPoints(x1, y1, x2, y2, rough) {
+            const segs = 10 + Math.floor(Math.random() * 8);
+            const pts  = [[x1, y1]];
+            for (let i = 1; i < segs; i++) {
+                pts.push([
+                    x1 + (x2 - x1) * (i / segs) + (Math.random() - 0.5) * rough,
+                    y1 + (y2 - y1) * (i / segs) + (Math.random() - 0.5) * rough * 0.4
+                ]);
+            }
+            pts.push([x2, y2]);
+            return pts;
+        }
+        function ptsToD(pts) {
+            return pts.map((p, i) => (i === 0 ? `M` : `L`) + ` ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+        }
+
+        function spawnLightning() {
+            const sx = W * (0.15 + Math.random() * 0.7);
+            const ex = sx + (Math.random() - 0.5) * 200;
+            const ey = H * (0.3 + Math.random() * 0.45);
+            const pts = makeBoltPoints(sx, 0, ex, ey, 80);
+
+            const ns  = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(ns, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;';
+
+            const uid = 'bg' + Date.now();
+            svg.innerHTML = `
+                <defs>
+                    <filter id="${uid}" x="-60%" y="-60%" width="220%" height="220%">
+                        <feGaussianBlur stdDeviation="5" result="b"/>
+                        <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <path d="${ptsToD(pts)}" stroke="#c8e8ff" stroke-width="2.5" fill="none" filter="url(#${uid})" stroke-linecap="round"/>
+                <path d="${ptsToD(pts)}" stroke="white"   stroke-width="1"   fill="none" stroke-linecap="round"/>`;
+
+            // branches
+            const nb = 1 + Math.floor(Math.random() * 2);
+            for (let b = 0; b < nb; b++) {
+                const mi = Math.floor(pts.length * 0.3 + Math.random() * pts.length * 0.4);
+                const mp = pts[Math.min(mi, pts.length - 1)];
+                const bpts = makeBoltPoints(mp[0], mp[1],
+                    mp[0] + (Math.random() - 0.5) * 160,
+                    mp[1] + 80 + Math.random() * 120, 40);
+                const bp = document.createElementNS(ns, 'path');
+                bp.setAttribute('d', ptsToD(bpts));
+                bp.setAttribute('stroke', 'rgba(180,220,255,0.7)');
+                bp.setAttribute('stroke-width', '1.2');
+                bp.setAttribute('fill', 'none');
+                bp.setAttribute('stroke-linecap', 'round');
+                svg.appendChild(bp);
+            }
+
+            boltContainer.appendChild(svg);
+            const frames = [[10,1],[60,0.4],[100,0.9],[170,0]];
+            frames.forEach(([t, o]) => setTimeout(() => { svg.style.opacity = o; }, t));
+            setTimeout(() => { if (svg.parentNode) svg.parentNode.removeChild(svg); }, 220);
+        }
+
+        function triggerThunder() {
+            overlay.style.opacity = '0.18';
+            setTimeout(() => { overlay.style.opacity = '0.07'; }, 55);
+            setTimeout(() => { overlay.style.opacity = '0.13'; }, 95);
+            setTimeout(() => { overlay.style.opacity = '0'; },   165);
+            spawnLightning();
+            if (Math.random() < 0.4) setTimeout(spawnLightning, 80);
+            if (window.StormAudio) window.StormAudio.playThunder();
+            canvas.style.opacity = '0.85';
+            setTimeout(() => { canvas.style.opacity = '0.55'; }, 450);
+            setTimeout(scheduleThunder, 4000 + Math.random() * 10000);
+        }
+        function scheduleThunder() {
+            setTimeout(triggerThunder, 4000 + Math.random() * 10000);
+        }
+        setTimeout(triggerThunder, 2000 + Math.random() * 3000);
+    })();
+    </script>
+</body>
+</html>
